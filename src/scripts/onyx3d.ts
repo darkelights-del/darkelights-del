@@ -315,7 +315,7 @@ function boot(canvas: HTMLCanvasElement) {
     side: THREE.BackSide, // far shell only: soft from outside, no wash from inside
     uniforms: {
       uTime: { value: 0 },
-      uColor: { value: new THREE.Color(0xf3e4cc) },
+      uColor: { value: new THREE.Color(0xe8e2dc) }, // palette off-white: no khaki cast over coal
       uIntensity: { value: LOWPERF ? 0.14 : 0.2 },
     },
     vertexShader: /* glsl */ `
@@ -379,7 +379,7 @@ function boot(canvas: HTMLCanvasElement) {
   const bGeo = new THREE.BufferGeometry();
   bGeo.setAttribute('position', new THREE.BufferAttribute(bPos, 3));
   const beamDust = new THREE.Points(bGeo, new THREE.PointsMaterial({
-    color: 0xf3e4cc, size: 0.06, transparent: true, opacity: 0.7,
+    color: 0xe8e2dc, size: 0.085, transparent: true, opacity: 0.75,
     blending: THREE.AdditiveBlending, depthWrite: false, map: emberTexture(),
   }));
   beam.add(beamDust); // local to the beam: aimed with the light
@@ -400,7 +400,7 @@ function boot(canvas: HTMLCanvasElement) {
     return new THREE.CanvasTexture(c);
   }
   const poolMat = new THREE.MeshBasicMaterial({
-    map: poolTexture(), color: 0xf3e4cc, transparent: true, opacity: LOWPERF ? 0.05 : 0.075,
+    map: poolTexture(), color: 0xe8e2dc, transparent: true, opacity: LOWPERF ? 0.05 : 0.075,
     blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
   });
   const pool = new THREE.Mesh(new THREE.PlaneGeometry(13, 7.5), poolMat);

@@ -225,10 +225,11 @@ function initReveals() {
       from.clipPath = 'inset(100% 0 0 0)';
       from.scale = 0.94;
     } else if (v === 'diag') {
-      // Corner wipe: opens from the top-left, drifting in along the diagonal.
+      // Corner wipe: opens from the top-left, drifting in from the same
+      // corner so the wipe origin and the motion origin agree.
       from.clipPath = 'inset(0 100% 100% 0)';
       from.x = -22;
-      from.y = 22;
+      from.y = -22;
     }
     gsap.set(el, from);
     const delay = (parseFloat(el.dataset.revealDelay || '0') || 0) / 1000;
@@ -656,21 +657,23 @@ function initDriftCols() {
 }
 
 /* SCENE: outreach ticker. [data-marquee] loops its duplicated            */
-/* [data-marquee-track]; scroll velocity throws it faster and scrolling   */
-/* back up reverses it, so the band is geared to the reader's hand.       */
+/* [data-marquee-track], geared to the scroll: it turns when the page     */
+/* turns (backwards when you scroll back up), coasts briefly on released  */
+/* momentum, and RESTS when the reader rests — motion is never idle.      */
 function initMarquee() {
   const wrap = document.querySelector<HTMLElement>('[data-marquee]');
   const trk = wrap?.querySelector<HTMLElement>('[data-marquee-track]');
   if (!wrap || !trk) return;
   let x = 0;
-  let vel = 0;
+  let momentum = 0;
   (window as any).__motion?.lenis?.on('scroll', (e: { velocity?: number }) => {
-    vel = e.velocity || 0;
+    momentum = gsap.utils.clamp(-320, 320, (e.velocity || 0) * -9);
   });
   gsap.ticker.add((_t, dms) => {
+    if (Math.abs(momentum) < 0.5) return; // at rest: no work, no motion
     const dt = Math.min(dms, 80) / 1000;
-    const dir = vel < -0.4 ? 1 : -1; // scrolling up rolls the band back
-    x += dir * (26 + Math.min(260, Math.abs(vel) * 7)) * dt;
+    x += momentum * dt;
+    momentum *= Math.pow(0.12, dt); // coast to a stop within ~a second
     const h = trk.scrollWidth / 2;
     if (h > 0) x = -((-x % h) + h) % h;
     gsap.set(trk, { x });
