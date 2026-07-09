@@ -177,9 +177,19 @@ const roster = 'Ethan Zhang · Ethan Zhuang · Anson Su · Adrian Chang · Leo L
   }
 
   .flow-script {
-    font-size: clamp(2rem, 6vw, 3.6rem);
+    font-size: clamp(2.5rem, 6vw, 3.6rem);
     color: var(--color-accent);
     line-height: 0.9;
+  }
+
+  /* Grey Qo's hairline strokes drown where the beam lights the O face
+     (worst at mobile sizes): the script gets a heavier coal halo than the
+     shared scrim so the crimson stays legible over lit stone. */
+  :global(html.onyx-live) .flow-script {
+    text-shadow:
+      0 0 4px rgba(10, 9, 8, 0.95),
+      0 0 12px rgba(10, 9, 8, 0.9),
+      0 2px 28px rgba(10, 9, 8, 0.85);
   }
 
   .flow-hero {

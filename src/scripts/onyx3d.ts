@@ -531,9 +531,11 @@ function boot(canvas: HTMLCanvasElement) {
   addEventListener('resize', () => { resize(); ScrollTrigger.refresh(); }, { passive: true });
 
   // ---- Content flow (HTML overlay, readable + interactive) -----------
-  const SHOWN = 'inset(-8% -8% -14% -8%)';
-  const HID_BELOW = 'inset(100% -8% -14% -8%)';
-  const HID_ABOVE = 'inset(-8% -8% 100% -8%)';
+  // Generous top/bottom margins: Grey Qo's script ascenders and descenders
+  // overshoot the line box hard (they cropped at mobile sizes with -8%).
+  const SHOWN = 'inset(-22% -8% -18% -8%)';
+  const HID_BELOW = 'inset(100% -8% -18% -8%)';
+  const HID_ABOVE = 'inset(-22% -8% 100% -8%)';
   const FLOW = [
     { ix: 0, iy: 34, ox: 0, oy: -46 },
     { ix: -58, iy: 52, ox: 80, oy: -66 },
