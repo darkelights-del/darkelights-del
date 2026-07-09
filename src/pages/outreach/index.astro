@@ -31,12 +31,24 @@ const fmt = (d: Date) =>
     </Reveal>
   </header>
 
-  <!-- POSTS: line-hover rows -->
-  <section class="mx-auto max-w-5xl px-5 pb-28 sm:px-8 sm:pb-36">
+  <!-- TICKER: the kinds of events we run, geared to the scroll -->
+  <div class="marquee" data-marquee aria-hidden="true">
+    <div class="marquee-track" data-marquee-track>
+      <span class="marquee-run type-display">
+        Robot demos · school workshops · scout nights · STEM fairs ·&nbsp;
+      </span>
+      <span class="marquee-run type-display">
+        Robot demos · school workshops · scout nights · STEM fairs ·&nbsp;
+      </span>
+    </div>
+  </div>
+
+  <!-- POSTS: line-hover rows, wiping in from alternating sides -->
+  <section class="mx-auto max-w-5xl px-5 py-28 sm:px-8 sm:pb-36">
     <div class="hairline border-t" data-reveal-group>
       {
-        posts.map((post) => (
-          <Reveal>
+        posts.map((post, i) => (
+          <Reveal variant={i % 2 ? 'right' : 'left'}>
             <a class="post-row" href={`${base}/outreach/${post.id}/`}>
               <span class="post-marker" aria-hidden="true" />
               <span class="post-date type-label text-muted">{fmt(post.data.date)}</span>
@@ -55,12 +67,10 @@ const fmt = (d: Date) =>
   <!-- BRING US IN -->
   <section class="mx-auto max-w-5xl px-5 py-28 sm:px-8 sm:py-40">
     <h2 class="type-display text-[clamp(2.5rem,8vw,6rem)]" data-split>Bring us in</h2>
-    <Reveal variant="up" class="mt-10 max-w-2xl">
-      <p class="text-muted">
-        Running a school event or a scout night? We show up with a robot kids
-        can actually drive, and the people who built it.
-      </p>
-    </Reveal>
+    <p class="mt-10 max-w-2xl text-muted" data-hreveal>
+      Running a school event or a scout night? We show up with a robot kids
+      can actually drive, and the people who built it.
+    </p>
     <Reveal variant="up" class="mt-10">
       <a href={`${base}/contact/`} class="btn btn-solid" data-magnetic="0.4">Get in touch</a>
     </Reveal>
@@ -68,6 +78,28 @@ const fmt = (d: Date) =>
 </BaseLayout>
 
 <style>
+  /* Ticker band: oversized outlined display type, hairline-ruled. Purely
+     decorative (aria-hidden); the motion engine gears it to scroll velocity. */
+  .marquee {
+    overflow: clip;
+    border-block: 1px solid var(--color-line);
+    padding-block: 1rem;
+  }
+
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    will-change: transform;
+  }
+
+  .marquee-run {
+    white-space: nowrap;
+    font-size: clamp(1.9rem, 4.5vw, 3.1rem);
+    line-height: 1.1;
+    color: transparent;
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--color-ink) 38%, transparent);
+  }
+
   .post-row {
     position: relative;
     display: grid;

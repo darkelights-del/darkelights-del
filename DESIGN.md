@@ -52,9 +52,10 @@ Under reduced motion the module bows out and static CSS stands in.
 **Primitives** (data attributes, work on any page):
 - `[data-split]` — headings split into masked lines of characters that rise
   from behind the line, scroll-locked; re-split on resize.
-- `[data-reveal]` (up/left/right/scale) — crisp clip-path wipe on enter,
-  opacity held at 1 (no fade). `[data-reveal-scrub]` is the same, locked to
-  scroll. `data-reveal-group` staggers children.
+- `[data-reveal]` (up/left/right/scale/diag) — crisp clip-path wipe on
+  enter, opacity held at 1 (no fade); `diag` is a corner wipe. Lists
+  alternate variants instead of repeating one. `[data-reveal-scrub]` is the
+  same, locked to scroll. `data-reveal-group` staggers children.
 - `[data-parallax="±px"]`, `[data-count]` (number counter),
   `[data-magnetic]` (cursor pull, pointer-fine), `[data-hover-preview]`
   (image beside cursor, needs `[data-preview-root]` + `[data-preview-img]`).
@@ -64,23 +65,37 @@ Under reduced motion the module bows out and static CSS stands in.
   O → N → Y → X as you scroll (`initOnyxSpine`).
 - `[data-hero]` — hero wordmark assembles, then tips into depth.
 - `[data-stack]` / `[data-stack-card]` — pinned card stack (lineage).
-- `[data-hscroll]` / `[data-hscroll-track]` — horizontal scroll-hijack
-  (season build log).
+- `[data-hscroll]` / `[data-hscroll-track]` — diagonal scroll-hijack
+  (season build log): the track pans sideways while climbing, panels
+  counter-drift past each other, and the track skews with scroll velocity.
+- `[data-screen]` — cinema screen-on: letterbox bars part from the centre,
+  scrubbed (season highlight match).
+- `[data-drift="±px"]` — sibling columns scrub opposite directions so a
+  grid shears and crosses as it passes (season gallery).
+- `[data-marquee]` / `[data-marquee-track]` — looping ticker geared to
+  scroll velocity; scrolling back up rolls it backwards (outreach).
+- `[data-tilt]` — glass panels lean toward the cursor, pointer-fine only
+  (contact channels).
 - `[data-coverflow]` — Swiper coverflow (roster), Swiper dynamically
   imported only where used.
 - `[data-flip]` (awards), `[data-ladder]`/`[data-rung]` (sponsor tiers),
   `[data-progress]` (blog reading bar).
+
+One trick per section: no two sections on a page share an entrance or
+scroll behaviour.
 
 ## Per-page specialties
 
 - **Home**: 3D ONYX spine · hero wordmark · pinned lineage card stack ·
   masked mission line · scroll-reveal robot specs · coverflow roster ·
   magnetic sponsor CTA.
-- **Season**: kinetic header · horizontal-scroll build log · reveal
-  highlight match · flip-card awards · reveal gallery.
-- **Outreach**: kinetic header · line-hover post rows · magnetic CTA.
-- **Contact**: kinetic header · magnetic contact CTA · scrubbed tier
-  ladder · staggered partner rows.
+- **Season**: kinetic header · diagonal build log (velocity skew,
+  cross-drift panels) · screen-on highlight match · flip-card awards ·
+  cross-drift gallery columns.
+- **Outreach**: kinetic header · velocity ticker · post rows wiping in
+  from alternating sides · ink-in CTA paragraph · magnetic CTA.
+- **Contact**: kinetic header · cursor-tilt glass channels · scrubbed tier
+  ladder · corner-wipe partner rows · magnetic contact CTA.
 - **Blog post**: reading-progress bar · masked title.
 
 ## The blog (Outreach)

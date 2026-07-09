@@ -40,7 +40,7 @@ const tiers = [
   <section class="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-24">
     <div class="grid gap-6 md:grid-cols-2">
       <Reveal variant="up">
-        <div class="glass flex h-full flex-col p-6 sm:p-8">
+        <div class="glass flex h-full flex-col p-6 sm:p-8" data-tilt>
           <h2 class="type-label text-muted">Contact form</h2>
           <p class="mt-5 max-w-prose text-muted">One short form for everything. It goes to the whole team.</p>
           <p class="type-label mt-6 text-muted">Link not wired up yet</p>
@@ -51,7 +51,7 @@ const tiers = [
       </Reveal>
 
       <Reveal variant="up" data-reveal-delay="120">
-        <div class="glass h-full p-6 sm:p-8">
+        <div class="glass h-full p-6 sm:p-8" data-tilt>
           <h2 class="type-label text-muted">Direct channels</h2>
           <dl class="hairline mt-5 border-t">
             <div class="channel hairline border-b">
@@ -109,7 +109,7 @@ const tiers = [
     <div class="mt-10 grid gap-x-12 gap-y-2 sm:grid-cols-2" data-reveal-group>
       {
         stemTies.map((tie, i) => (
-          <Reveal class="tie hairline border-b">
+          <Reveal variant="diag" class="tie hairline border-b">
             <span class="type-label text-accent">{String(i + 1).padStart(2, '0')}</span>
             <div>
               <p class="type-display tie-name">{tie.name}</p>

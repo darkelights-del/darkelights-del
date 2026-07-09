@@ -65,7 +65,7 @@ const timeline = [
     <Reveal variant="up" class="mt-6 max-w-prose">
       <p class="text-muted">One match per event earns this spot: the video, and why we picked it.</p>
     </Reveal>
-    <div class="mt-12" data-reveal-scrub="up">
+    <div class="mt-12" data-screen>
       <Placeholder name="season-highlight-match" class="p-3 sm:p-4">
         <div class="slot aspect-video">
           <span class="type-label text-muted">Match video, TBD</span>
@@ -84,15 +84,13 @@ const timeline = [
     <Reveal variant="up" class="mt-6 max-w-prose">
       <p class="text-muted">Anything the judges hand us gets logged here, next to what it recognized.</p>
     </Reveal>
-    <div class="mt-12 grid gap-5 sm:grid-cols-3" data-reveal-group>
+    <div class="mt-12 grid gap-5 sm:grid-cols-3">
       {
-        Array.from({ length: 3 }).map(() => (
-          <Reveal>
-            <article class="award-card glass">
-              <p class="type-label text-accent">Award</p>
-              <p class="type-display mt-3 text-2xl">TBD</p>
-            </article>
-          </Reveal>
+        Array.from({ length: 3 }).map((_, i) => (
+          <article class="award-card glass" data-flip data-flip-delay={i * 130}>
+            <p class="type-label text-accent">Award</p>
+            <p class="type-display mt-3 text-2xl">TBD</p>
+          </article>
         ))
       }
     </div>
@@ -101,14 +99,18 @@ const timeline = [
   <!-- GALLERY -->
   <section class="mx-auto max-w-5xl px-5 py-28 sm:px-8 sm:py-36">
     <h2 class="type-display text-[clamp(1.75rem,4vw,3rem)]" data-split>Gallery</h2>
-    <div class="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3" data-reveal-group>
+    <div class="mt-12 grid grid-cols-3 gap-4">
       {
-        Array.from({ length: 6 }).map((_, i) => (
-          <Reveal variant="scale" data-parallax={i % 2 === 0 ? '-24' : '24'}>
-            <div class="slot aspect-square">
-              <span class="type-label text-muted">Photo, TBD</span>
-            </div>
-          </Reveal>
+        [-46, 64, -38].map((drift) => (
+          <div class="flex flex-col gap-4" data-drift={drift}>
+            {Array.from({ length: 2 }).map(() => (
+              <Reveal variant="scale">
+                <div class="slot aspect-square">
+                  <span class="type-label text-muted">Photo, TBD</span>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         ))
       }
     </div>
@@ -139,10 +141,24 @@ const timeline = [
     width: min(80vw, 26rem);
     flex: none;
     padding: clamp(1.75rem, 4vw, 3rem);
-    align-self: stretch;
+    /* Centered with capped height (not stretched): the cross-drift needs
+       headroom to ride panels past each other inside the pinned viewport. */
+    align-self: center;
+    min-height: min(62svh, 28rem);
     display: flex;
     flex-direction: column;
     justify-content: center;
+    will-change: transform;
+  }
+
+  /* Resting diagonal: alternate baselines so the log steps upward even
+     before (or without) the scripted drift. */
+  .hscroll-panel:nth-of-type(odd) {
+    margin-top: 3.25rem;
+  }
+
+  .hscroll-panel:nth-of-type(even) {
+    margin-bottom: 3.25rem;
   }
 
   .award-card {
