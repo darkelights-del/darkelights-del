@@ -3,9 +3,12 @@
  *
  * The ONYX word is four letters of genuine extruded geometry (the Uncial
  * Antiqua outlines, src/data/onyx-glyphs.ts), lit like dark onyx stone:
- * a deep-purple body, off-white key, crimson rim. The camera tracks across
- * the word on scroll, dollying into each letter while its content is born
- * from the frame; between them it glides like one continuous take.
+ * a deep-purple body, off-white key, crimson rim. One coherent light source
+ * carries the render: the key spotlight casts real shadows, throws a visible
+ * volumetric beam with dust caught inside it, and the letters mirror in a
+ * polished coal floor. The camera tracks across the word on scroll, dollying
+ * into each letter while its content is born from the frame; between them it
+ * glides like one continuous take.
  *
  * Because the letters are geometry, they are crisp at every distance and
  * carry real depth and specular character — no upscaled-texture blur.
@@ -144,11 +147,35 @@ function boot(canvas: HTMLCanvasElement) {
 
   // Shadow catcher: a plane below the letters so the cast shadow reads over
   // coal without an off-brand bright floor.
+  const FLOOR_Y = -4.0;
   const catcher = new THREE.Mesh(new THREE.PlaneGeometry(90, 44), new THREE.ShadowMaterial({ opacity: 0.55 }));
   catcher.rotation.x = -Math.PI / 2;
-  catcher.position.y = -4.0;
+  catcher.position.y = FLOOR_Y;
   catcher.receiveShadow = true;
   scene.add(catcher);
+
+  // Polished-floor reflection: each letter is mirrored across the floor line
+  // with real geometry (synced to the source every frame), its alpha fading
+  // with depth below the floor — the coal slab reads as wet-polished onyx,
+  // and the reflection obeys the same lights, env and fog as the letters.
+  const mirrorMat = material.clone();
+  mirrorMat.transparent = true;
+  mirrorMat.opacity = 0.3;
+  mirrorMat.roughness = 0.55; // floor scatter softens the reflected image
+  mirrorMat.clearcoat = 0.25;
+  mirrorMat.envMapIntensity = 0.7;
+  mirrorMat.onBeforeCompile = (sh) => {
+    sh.uniforms.uFloorY = { value: FLOOR_Y };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying float vWorldY;')
+      .replace('#include <fog_vertex>', '#include <fog_vertex>\nvWorldY = (modelMatrix * vec4( transformed, 1.0 )).y;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vWorldY;\nuniform float uFloorY;')
+      .replace(
+        '#include <dithering_fragment>',
+        '#include <dithering_fragment>\n\tgl_FragColor.a *= clamp( 1.0 - ( uFloorY - vWorldY ) / 6.0, 0.0, 1.0 );',
+      );
+  };
 
   // ---- Dust motes: additive points drifting up through the scene ----------
   function emberTexture() {
@@ -223,6 +250,18 @@ function boot(canvas: HTMLCanvasElement) {
 
   const L = letterX; // [O, N, Y, X] centres
 
+  // The mirrored letters (see mirrorMat above). Shared geometry, synced to the
+  // source meshes in the render loop, so the reflection follows the idle
+  // breathing and the assemble intro exactly. Skipped on low-power devices.
+  const mirrors: THREE.Mesh[] = LOWPERF
+    ? []
+    : meshes.map((m) => {
+        const r = new THREE.Mesh(m.geometry, mirrorMat);
+        r.position.set(m.position.x, 2 * FLOOR_Y, 0);
+        scene.add(r);
+        return r;
+      });
+
   // Crepuscular light shafts raking behind the word (from the key-light
   // direction). They sit deep in the haze, so the letters occlude them and the
   // light streams PAST the ONYX silhouettes, with dust drifting through it.
@@ -256,10 +295,119 @@ function boot(canvas: HTMLCanvasElement) {
     shafts.push({ mesh: m, base: opacity, phase });
   };
   const RAKE = 0.5; // one coherent light direction (upper-left key)
-  addShaft(0xe8e2dc, LOWPERF ? 0.08 : 0.11, L[0] - 2, 3, -12, 6.5, 48, RAKE, 0.0); // off-white, over the O
-  addShaft(0xe8e2dc, LOWPERF ? 0.05 : 0.07, L[1] + 2, 1, -14, 5.5, 48, RAKE, 1.7); // off-white, mid
-  addShaft(0x6e0d25, LOWPERF ? 0.06 : 0.09, L[3] - 1, -1, -13, 6, 46, RAKE, 3.1); // crimson, right
-  if (!LOWPERF) addShaft(0x6e0d25, 0.06, L[2] + 1, 2, -15, 5, 46, RAKE, 4.4); // crimson, over Y
+  addShaft(0xe8e2dc, LOWPERF ? 0.06 : 0.08, L[0] - 2, 3, -12, 6.5, 48, RAKE, 0.0); // off-white, deep haze left
+  addShaft(0x6e0d25, LOWPERF ? 0.05 : 0.07, L[3] - 1, -1, -13, 6, 46, RAKE, 3.1); // crimson, deep haze right
+
+  // ---- Volumetric key beam: the key spotlight made visible. A cone shell
+  // whose apex sits AT the key light and opens along its throw, so the beam,
+  // the speculars, the cast shadows and the floor reflection all agree on one
+  // light source. Animated striations give it the crepuscular shimmer of dust
+  // in a projector throw; the shell fades at grazing angles so it has no hard
+  // silhouette from any camera position on the journey.
+  const BEAM_LEN = 34;
+  const BEAM_R = 8.5;
+  const beamGeo = new THREE.CylinderGeometry(0.55, BEAM_R, BEAM_LEN, LOWPERF ? 28 : 48, 1, true);
+  beamGeo.translate(0, -BEAM_LEN / 2, 0); // apex at the mesh origin, opening down local -Y
+  const beamMat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide, // far shell only: soft from outside, no wash from inside
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(0xf3e4cc) },
+      uIntensity: { value: LOWPERF ? 0.14 : 0.2 },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      varying vec3 vNormalV;
+      varying vec3 vViewV;
+      void main() {
+        vUv = uv;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vNormalV = normalMatrix * normal;
+        vViewV = -mv.xyz;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      varying vec2 vUv;
+      varying vec3 vNormalV;
+      varying vec3 vViewV;
+      uniform float uTime;
+      uniform vec3 uColor;
+      uniform float uIntensity;
+      void main() {
+        // Axial falloff: bright toward the apex, carrying down past the floor
+        // line, eased right at the apex so there is no hot point at the light.
+        float axial = pow(smoothstep(0.02, 1.0, vUv.y), 1.2) * smoothstep(1.0, 0.85, vUv.y);
+        // Grazing-angle fade: the shell dissolves at its own silhouette.
+        float edge = pow(abs(dot(normalize(vNormalV), normalize(vViewV))), 1.4);
+        // Slow crepuscular striations drifting around the cone.
+        float stri = 0.78
+          + 0.14 * sin(vUv.x * 42.0 + uTime * 0.22)
+          + 0.08 * sin(vUv.x * 17.0 - uTime * 0.13);
+        gl_FragColor = vec4(uColor, axial * edge * stri * uIntensity);
+      }`,
+  });
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.position.copy(key.position);
+  beam.lookAt(0, -0.5, 0);
+  beam.rotateX(-Math.PI / 2); // swing the cylinder's -Y axis onto the look direction
+  scene.add(beam);
+
+  // Dust caught in the beam: brighter, slower motes that only exist inside the
+  // cone volume (in the beam's local space, so they inherit its aim). This is
+  // what makes the ray read as light in air rather than a gradient.
+  const BEAM_N = LOWPERF ? 60 : 150;
+  const bDust: { ang: number; rad: number; y: number; spd: number; swirl: number }[] = [];
+  const bPos = new Float32Array(BEAM_N * 3);
+  const coneR = (y: number) => 0.55 + (BEAM_R - 0.55) * (-y / BEAM_LEN);
+  for (let i = 0; i < BEAM_N; i++) {
+    const d = {
+      ang: Math.random() * Math.PI * 2,
+      rad: Math.sqrt(Math.random()) * 0.85, // bias toward the bright core
+      y: -2.5 - Math.random() * (BEAM_LEN - 6),
+      spd: 0.25 + Math.random() * 0.5,
+      swirl: (Math.random() - 0.5) * 0.5,
+    };
+    bDust.push(d);
+    const r = d.rad * coneR(d.y);
+    bPos[i * 3] = Math.cos(d.ang) * r;
+    bPos[i * 3 + 1] = d.y;
+    bPos[i * 3 + 2] = Math.sin(d.ang) * r;
+  }
+  const bGeo = new THREE.BufferGeometry();
+  bGeo.setAttribute('position', new THREE.BufferAttribute(bPos, 3));
+  const beamDust = new THREE.Points(bGeo, new THREE.PointsMaterial({
+    color: 0xf3e4cc, size: 0.06, transparent: true, opacity: 0.7,
+    blending: THREE.AdditiveBlending, depthWrite: false, map: emberTexture(),
+  }));
+  beam.add(beamDust); // local to the beam: aimed with the light
+
+  // Where the beam lands: a soft pool of light on the floor (the beam axis
+  // meets the floor plane just right of centre), stretched along the throw.
+  // This grounds the ray — light that arrives somewhere reads as real.
+  function poolTexture() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d')!;
+    const grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grd.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grd.addColorStop(0.45, 'rgba(255,255,255,0.32)');
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 256, 256);
+    return new THREE.CanvasTexture(c);
+  }
+  const poolMat = new THREE.MeshBasicMaterial({
+    map: poolTexture(), color: 0xf3e4cc, transparent: true, opacity: LOWPERF ? 0.05 : 0.075,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+  });
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(13, 7.5), poolMat);
+  pool.rotation.x = -Math.PI / 2;
+  pool.rotation.z = 0.25; // elongated along the beam's landing direction
+  pool.position.set(1.8, FLOOR_Y + 0.02, -2.6); // beam axis ∩ floor plane
+  scene.add(pool);
 
   // ---- Depth-woven words: real troika text that shares the depth buffer,
   // so the letters occlude it — it goes behind, in front, and through the O
@@ -342,6 +490,7 @@ function boot(canvas: HTMLCanvasElement) {
     };
   };
   (window as any).__onyxEval = evalKF; // deterministic path read-back (velocity-profile analysis)
+  (window as any).__onyxJump = (p: number) => { targetP = p; scrollP = p; }; // test hook: snap the journey (capture harness)
 
   // Content dwell windows: the readable HTML for each letter reveals while the
   // camera holds on it (O framed through the hole; N/Y/X front; X close).
@@ -426,6 +575,36 @@ function boot(canvas: HTMLCanvasElement) {
       }
     }
 
+    // Reflections mirror their letters across the floor line (a true mirror
+    // transform: y position and x/z rotations negate, y scale flips).
+    for (let i = 0; i < mirrors.length; i++) {
+      const src = meshes[i], r = mirrors[i];
+      r.position.set(src.position.x, 2 * FLOOR_Y - src.position.y, src.position.z);
+      r.rotation.set(-src.rotation.x, src.rotation.y, -src.rotation.z);
+      r.scale.set(src.scale.x, -src.scale.y, src.scale.z);
+      r.visible = src.visible;
+    }
+
+    // The beam breathes with the shafts and stirs when the visitor scrolls;
+    // its floor pool breathes in step so the light stays one system.
+    const breathe = (0.85 + 0.15 * Math.sin(t * 0.3)) * (1 + Math.min(0.7, scrollVel * 0.6));
+    beamMat.uniforms.uTime.value = t;
+    beamMat.uniforms.uIntensity.value = (LOWPERF ? 0.14 : 0.2) * breathe;
+    poolMat.opacity = (LOWPERF ? 0.05 : 0.075) * breathe;
+
+    // Beam dust drifts down the throw and swirls slowly around the axis.
+    for (let i = 0; i < BEAM_N; i++) {
+      const d = bDust[i];
+      d.y -= d.spd * dt;
+      d.ang += d.swirl * dt;
+      if (d.y < -(BEAM_LEN - 3)) d.y = -2.5;
+      const r = d.rad * coneR(d.y);
+      bPos[i * 3] = Math.cos(d.ang) * r;
+      bPos[i * 3 + 1] = d.y;
+      bPos[i * 3 + 2] = Math.sin(d.ang) * r;
+    }
+    bGeo.attributes.position.needsUpdate = true;
+
     // Dust motes rise; sway and speed swell with scroll velocity.
     const speedMul = 1 + scrollVel * 6;
     for (let i = 0; i < EMBERS; i++) {
@@ -455,6 +634,9 @@ function boot(canvas: HTMLCanvasElement) {
       const mid = (w.a + w.b) / 2, half = (w.b - w.a) / 2 || 1;
       let k = Math.max(0, 1 - Math.abs(scrollP - mid) / half);
       k = k * k * (3 - 2 * k);
+      // Fully hide a dormant word: at opacity 0 it must not write depth, or it
+      // punches letter-shaped holes in the additive beam behind it.
+      w.mesh.visible = k > 0.004;
       w.mesh.fillOpacity = k;
       w.mesh.outlineOpacity = k;
       if (w.fly) {
